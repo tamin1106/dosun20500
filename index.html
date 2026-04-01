@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리반 자리 배치도</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<style>
+/* 🎨 깔끔하고 모던한 디자인 */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f6f8fa; color: #24292e; line-height: 1.5; padding-bottom: 50px; }
+.classroom { padding: 2rem 1rem; max-width: 850px; margin: 0 auto; }
+
+/* 칠판 & 교탁 */
+.board { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 6px; padding: 12px; text-align: center; font-size: 14px; font-weight: 600; color: #586069; margin-bottom: 12px; letter-spacing: 6px; box-shadow: 0 1px 2px rgba(27,31,35,0.04); }
+.teacher-desk { display: flex; justify-content: center; margin-bottom: 30px; }
+.teacher-desk-box { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 6px; padding: 6px 24px; font-size: 12px; color: #586069; box-shadow: 0 1px 2px rgba(27,31,35,0.04); }
+
+/* 관리자(선생님) 전용 컨트롤 패널 - 기본적으로 숨김 */
+.controls { display: none; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; background: #fff8c5; padding: 12px 16px; border-radius: 8px; border: 1px solid #e5cd52; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.controls.active { display: flex; }
+.controls label { font-size: 13px; font-weight: bold; color: #735c0f; display: flex; align-items: center; gap: 6px; margin-right: 6px; }
+.controls input { font-size: 13px; padding: 4px 8px; border-radius: 4px; border: 1px solid #d1d5da; width: 50px; text-align: center; }
+
+/* 버튼 */
+.btn { font-size: 13px; padding: 6px 14px; border-radius: 5px; border: 1px solid #d1d5da; background: #ffffff; color: #24292e; cursor: pointer; font-weight: 500; transition: 0.2s; }
+.btn:hover { background: #f3f4f6; }
+.btn-primary { background: #2ea44f; color: white; border-color: #2ea44f; }
+.btn-primary:hover { background: #2c974b; }
+.btn-danger { color: #cb2431; border-color: #ffe3e6; }
+.btn-danger:hover { background: #ffebee; }
+.flex-spacer { flex-grow: 1; }
+
+/* 하단 정보 표시줄 */
+.info-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 12px; color: #586069; padding: 0 4px; }
+.legend { display: flex; gap: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* 좌석 그리드 */
+.seats-grid { display: grid; gap: 10px; justify-content: center; }
+.seat { border: 1px solid #e1e4e8; border-radius: 6px; padding: 10px 4px; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; position: relative; background: #ffffff; width: 100%; box-shadow: 0 1px 2px rgba(27,31,35,0.03); }
+.seat.admin-mode { cursor: pointer; }
+.seat.admin-mode:hover { box-shadow: 0 3px 6px rgba(27,31,35,0.08); transform: translateY(-1px); border-color: #c6cbd1; }
+.seat.occupied { border-color: #d1d5da; }
+
+.seat.occupied.boy { background: #f1f8ff; border-color: #c8e1ff; }
+.seat.occupied.girl { background: #fff5f5; border-color: #ffe3e6; }
+.seat.fixed { border-style: dashed; border-width: 2px; }
+
+.seat-num { font-size: 11px; color: #959da5; position: absolute; top: 6px; left: 8px; }
+.seat-name { font-size: 14px; font-weight: 600; text-align: center; word-break: break-all; }
+.seat-empty-icon { font-size: 18px; color: #e1e4e8; font-weight: 300; }
+.seat.occupied.boy .seat-name { color: #0366d6; }
+.seat.occupied.girl .seat-name { color: #cb2431; }
+.pin-icon { position: absolute; top: 6px; right: 8px; font-size: 12px; opacity: 0.7; }
+
+/* 모달 */
+.modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(27,31,35,0.4); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-bg.open { display: flex; }
+.modal { background: #ffffff; border-radius: 12px; padding: 24px; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.modal h3 { font-size: 15px; margin-bottom: 16px; text-align: center; }
+.modal input { width: 100%; padding: 10px; border: 1px solid #e1e4e8; border-radius: 6px; font-size: 14px; margin-bottom: 16px; text-align: center; }
+.modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modal-btns button { padding: 9px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid; }
+.btn-boy { background: #f1f8ff; border-color: #c8e1ff; color: #0366d6; }
+.btn-girl { background: #fff5f5; border-color: #ffe3e6; color: #cb2431; }
+.btn-fix { grid-column: 1 / 3; background: #fffbdd; border-color: #e5cd52; color: #735c0f; }
+
+/* 관리자 로그인 버튼 (우측 하단 고정) */
+.admin-login-btn { position: fixed; bottom: 20px; right: 20px; background: #24292e; color: white; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); opacity: 0.5; transition: 0.3s; z-index: 50; }
+.admin-login-btn:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="classroom">
+  <div class="board">칠 판</div>
+  <div class="teacher-desk"><div class="teacher-desk-box">교사 책상</div></div>
+
+  <div class="controls" id="controls">
+    <span style="font-size: 16px; margin-right:10px;">👑 관리자 모드</span>
+    <label>한 줄 <input type="number" id="cols" value="5" min="2" max="10">명</label>
+    <label>총 인원 <input type="number" id="totalSeats" value="25" min="1" max="80">명</label>
+    
+    <button class="btn" onclick="updateSettings()">적용</button>
+    <button class="btn btn-primary" onclick="randomizeNumbers()">번호 자동 배치</button>
+    <button class="btn" onclick="shuffleExisting()">현재 자리 섞기</button>
+    <div class="flex-spacer"></div>
+    <button class="btn btn-danger" onclick="clearAll()">전체 비우기</button>
+  </div>
+
+  <div class="info-bar">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c8e1ff;"></div>남 / 홀수</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffe3e6;"></div>여 / 짝수</div>
+      <div class="legend-item"><div class="legend-dot" style="border:1px dashed #586069; background:#fff;"></div>고정 자리</div>
+    </div>
+    <div id="stats">데이터 서버 연결 중...</div>
+  </div>
+
+  <div class="seats-grid" id="seatsGrid"></div>
+</div>
+
+<button class="admin-login-btn" id="loginBtn" onclick="toggleAdmin()">🔒 선생님 로그인</button>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>자리 설정</h3>
+    <input type="text" id="nameInput" placeholder="이름 또는 번호" maxlength="10">
+    <div class="modal-btns">
+      <button class="btn-boy" onclick="saveSeat('boy')">남학생 배정</button>
+      <button class="btn-girl" onclick="saveSeat('girl')">여학생 배정</button>
+      <button class="btn-fix" id="fixBtn" onclick="toggleFix()">고정하기</button>
+      <button class="btn btn-danger" onclick="clearSeat()">비우기</button>
+      <button class="btn" onclick="closeModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 🔥 선생님의 파이어베이스 고유 접속 키 적용 완료! 🔥
+const firebaseConfig = {
+  apiKey: "AIzaSyBMGzIFGJa5bQM60Lszp9_PEbYtB2oTXtY",
+  authDomain: "classseat-38902.firebaseapp.com",
+  databaseURL: "https://classseat-38902-default-rtdb.firebaseio.com",
+  projectId: "classseat-38902",
+  storageBucket: "classseat-38902.firebasestorage.app",
+  messagingSenderId: "209211790312",
+  appId: "1:209211790312:web:74044313bca4a07dd94a5d",
+  measurementId: "G-1M68B30YX8"
+};
+
+// 파이어베이스 시작
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔒 선생님 로그인 비밀번호 변경 완료!
+const ADMIN_PASSWORD = "dosunseat20500"; 
+
+// 기본 변수
+let cols = 5, totalSeats = 25;
+let seats = {};
+let activeSeat = null;
+let isAdmin = false; // 기본값은 학생 모드(수정 불가)
+
+// 🔥 1. 파이어베이스에서 실시간으로 데이터 가져오기 (접속 시, 내용 바뀔 때 즉시 실행)
+db.ref('classroom/').on('value', (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    cols = data.c || 5;
+    totalSeats = data.ts || 25;
+    seats = data.s || {};
+    
+    // 입력창 업데이트
+    document.getElementById('cols').value = cols;
+    document.getElementById('totalSeats').value = totalSeats;
+  }
+  buildGrid(); // 화면 새로 그리기
+});
+
+// 🔥 2. 파이어베이스에 데이터 저장하기 (변경될 때마다 서버로 쏨)
+function syncToServer() {
+  if (!isAdmin) return;
+  db.ref('classroom/').set({
+    c: cols,
+    ts: totalSeats,
+    s: seats
+  });
+}
+
+// 선생님 로그인 / 로그아웃 기능
+function toggleAdmin() {
+  if (isAdmin) {
+    isAdmin = false;
+    document.getElementById('controls').classList.remove('active');
+    document.getElementById('loginBtn').innerText = "🔒 선생님 로그인";
+    buildGrid();
+  } else {
+    const pwd = prompt("관리자(선생님) 비밀번호를 입력하세요.");
+    if (pwd === ADMIN_PASSWORD) {
+      isAdmin = true;
+      document.getElementById('controls').classList.add('active');
+      document.getElementById('loginBtn').innerText = "🔓 관리자 로그아웃";
+      buildGrid();
+    } else if (pwd !== null) {
+      alert("비밀번호가 틀렸습니다.");
+    }
+  }
+}
+
+function buildGrid() {
+  const grid = document.getElementById('seatsGrid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.innerHTML = '';
+  
+  for (let i = 0; i < totalSeats; i++) {
+    const id = `seat-${i}`;
+    const div = document.createElement('div');
+    div.className = isAdmin ? 'seat admin-mode' : 'seat';
+    div.dataset.id = id;
+    
+    // 선생님 로그인 상태일 때만 클릭(수정) 가능
+    if (isAdmin) {
+      div.onclick = () => openModal(id);
+    } else {
+      div.onclick = () => alert("보기 전용 모드입니다. 자리를 수정할 수 없습니다.");
+    }
+    
+    renderSeat(div, id, i + 1);
+    grid.appendChild(div);
+  }
+  updateStats();
+}
+
+function renderSeat(el, id, num) {
+  const s = seats[id];
+  let html = `<span class="seat-num">${num}</span>`;
+  
+  if (s) {
+    let classes = `seat occupied ${s.gender}`;
+    if(s.isFixed) {
+      classes += ` fixed`;
+      html += `<span class="pin-icon">📌</span>`;
+    }
+    el.className = isAdmin ? classes + " admin-mode" : classes;
+    html += `<span class="seat-name">${s.name}</span>`;
+  } else {
+    html += `<span class="seat-empty-icon">+</span>`;
+  }
+  el.innerHTML = html;
+}
+
+function openModal(id) {
+  activeSeat = id;
+  const s = seats[id];
+  document.getElementById('nameInput').value = s ? s.name : '';
+  
+  const fixBtn = document.getElementById('fixBtn');
+  if(s && s.isFixed) {
+    fixBtn.innerHTML = "고정 해제";
+  } else {
+    fixBtn.innerHTML = "고정하기";
+  }
+
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(() => document.getElementById('nameInput').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  activeSeat = null;
+}
+
+function saveSeat(gender) {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return;
+  const isFixed = seats[activeSeat] ? seats[activeSeat].isFixed : false;
+  seats[activeSeat] = { name, gender, isFixed };
+  syncToServer(); // 서버에 즉시 반영
+  closeModal();
+}
+
+function toggleFix() {
+  if(!seats[activeSeat]) { alert("먼저 배정한 후 고정해주세요."); return; }
+  seats[activeSeat].isFixed = !seats[activeSeat].isFixed;
+  syncToServer(); 
+  closeModal();
+}
+
+function clearSeat() {
+  delete seats[activeSeat];
+  syncToServer(); 
+  closeModal();
+}
+
+function updateSettings() {
+  cols = Math.max(2, Math.min(10, parseInt(document.getElementById('cols').value) || 5));
+  totalSeats = Math.max(1, parseInt(document.getElementById('totalSeats').value) || 25);
+  syncToServer();
+}
+
+function clearAll() {
+  if(confirm("정말 모든 배치를 지우시겠습니까?")) {
+    seats = {};
+    syncToServer();
+  }
+}
+
+function randomizeNumbers() {
+  // 1. 고정 안 된 자리 비우기
+  for (let i = 0; i < totalSeats; i++) {
+    if (seats[`seat-${i}`] && !seats[`seat-${i}`].isFixed) delete seats[`seat-${i}`];
+  }
+
+  // 2. 빈 자리 모으기
+  const emptySeatIds = [];
+  for (let i = 0; i < totalSeats; i++) {
+    if (!seats[`seat-${i}`]) emptySeatIds.push(`seat-${i}`);
+  }
+
+  // 3. 고정된 이름 빼고 번호 뽑기
+  const fixedNames = Object.values(seats).filter(s => s.isFixed).map(s => s.name);
+  const availableNumbers = [];
+  for(let i = 1; i <= totalSeats; i++) {
+    if(!fixedNames.includes(`${i}번`)) availableNumbers.push(i);
+  }
+
+  emptySeatIds.sort(() => Math.random() - 0.5);
+  availableNumbers.sort(() => Math.random() - 0.5);
+
+  for(let i = 0; i < emptySeatIds.length; i++) {
+    const num = availableNumbers[i];
+    if (num) {
+      const genderClass = num % 2 === 0 ? 'girl' : 'boy';
+      seats[emptySeatIds[i]] = { name: `${num}번`, gender: genderClass, isFixed: false };
+    }
+  }
+  syncToServer(); // 다 섞은 뒤 서버에 전송
+}
+
+function shuffleExisting() {
+  const movableStudents = []; 
+  const emptySeatIds = []; 
+
+  for (let i = 0; i < totalSeats; i++) {
+    const id = `seat-${i}`;
+    if (seats[id]) {
+      if (!seats[id].isFixed) {
+        movableStudents.push({ name: seats[id].name, gender: seats[id].gender, isFixed: false });
+        emptySeatIds.push(id);
+        delete seats[id];
+      }
+    } else {
+      emptySeatIds.push(id);
+    }
+  }
+
+  if(movableStudents.length === 0) return alert("섞을 대상이 없습니다. 배치를 먼저 해주세요.");
+
+  movableStudents.sort(() => Math.random() - 0.5);
+  emptySeatIds.sort(() => Math.random() - 0.5);
+
+  for(let i = 0; i < movableStudents.length; i++) {
+    seats[emptySeatIds[i]] = movableStudents[i];
+  }
+  syncToServer();
+}
+
+function updateStats() {
+  const placed = Object.keys(seats).length;
+  const empty = totalSeats - placed;
+  document.getElementById('stats').textContent = `총 좌석: ${totalSeats}석 · 배치 인원: ${placed}명 · 빈 자리: ${empty}석`;
+}
+
+// 엔터 키나 모달 바깥 클릭 시 닫기
+document.getElementById('modalBg').addEventListener('click', e => { if (e.target === document.getElementById('modalBg')) closeModal(); });
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveSeat(seats[activeSeat]?.gender || 'boy'); });
+
+</script>
+</body>
+</html>
