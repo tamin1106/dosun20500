@@ -31,11 +31,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .btn-primary:hover { background: #2c974b; }
 .btn-danger { color: #cb2431; border-color: #ffe3e6; }
 .btn-danger:hover { background: #ffebee; }
+.btn-group { background: #0366d6; color: white; border-color: #0366d6; }
+.btn-group:hover { background: #005cc5; }
 .flex-spacer { flex-grow: 1; }
 
 /* 하단 정보 표시줄 */
 .info-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 12px; color: #586069; padding: 0 4px; }
-.legend { display: flex; gap: 12px; }
+.legend { display: flex; gap: 12px; align-items: center; }
 .legend-item { display: flex; align-items: center; gap: 6px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
 
@@ -57,7 +59,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .seat.occupied.girl .seat-name { color: #cb2431; }
 .pin-icon { position: absolute; top: 6px; right: 8px; font-size: 12px; opacity: 0.7; }
 
-/* 모달 */
+/* 모달 (자리 설정용) */
 .modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(27,31,35,0.4); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-bg.open { display: flex; }
 .modal { background: #ffffff; border-radius: 12px; padding: 24px; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
@@ -69,7 +71,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .btn-girl { background: #fff5f5; border-color: #ffe3e6; color: #cb2431; }
 .btn-fix { grid-column: 1 / 3; background: #fffbdd; border-color: #e5cd52; color: #735c0f; }
 
-/* 관리자 로그인 버튼 (우측 하단 고정) */
+/* 🌟 새롭게 추가된 모둠 보기 전용 모달 */
+.group-modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(27,31,35,0.6); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+.group-modal-bg.open { display: flex; }
+.group-modal { background: #f6f8fa; border-radius: 12px; padding: 24px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.group-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e1e4e8; padding-bottom: 12px; }
+.group-modal-header h2 { font-size: 18px; color: #24292e; margin: 0; }
+.group-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #586069; line-height: 1; }
+.group-close-btn:hover { color: #cb2431; }
+.group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+.group-card { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(27,31,35,0.05); }
+.group-card-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 6px; text-align: center; }
+.group-member { font-size: 14px; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #f3f4f6; }
+.group-member:last-child { border-bottom: none; }
+.group-member-name { font-weight: 600; }
+.group-member-num { color: #959da5; font-size: 12px; background: #f3f4f6; padding: 2px 6px; border-radius: 10px; }
+
+/* 관리자 로그인 버튼 */
 .admin-login-btn { position: fixed; bottom: 20px; right: 20px; background: #24292e; color: white; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); opacity: 0.5; transition: 0.3s; z-index: 50; }
 .admin-login-btn:hover { opacity: 1; }
 </style>
@@ -97,6 +115,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
       <div class="legend-item"><div class="legend-dot" style="background:#c8e1ff;"></div>남 / 홀수</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ffe3e6;"></div>여 / 짝수</div>
       <div class="legend-item"><div class="legend-dot" style="border:1px dashed #586069; background:#fff;"></div>고정 자리</div>
+      <button class="btn btn-group" style="margin-left: 10px;" onclick="openGroupModal()">👥 모둠 편성표</button>
     </div>
     <div id="stats">데이터 서버 연결 중...</div>
   </div>
@@ -120,8 +139,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
   </div>
 </div>
 
+<div class="group-modal-bg" id="groupModalBg">
+  <div class="group-modal">
+    <div class="group-modal-header">
+      <h2>👥 우리반 모둠 편성표</h2>
+      <button class="group-close-btn" onclick="closeGroupModal()">&times;</button>
+    </div>
+    <div class="group-grid" id="groupGrid">
+      </div>
+  </div>
+</div>
+
 <script>
-// 🔥 선생님의 파이어베이스 고유 접속 키 적용 완료! 🔥
 const firebaseConfig = {
   apiKey: "AIzaSyBMGzIFGJa5bQM60Lszp9_PEbYtB2oTXtY",
   authDomain: "classseat-38902.firebaseapp.com",
@@ -133,20 +162,16 @@ const firebaseConfig = {
   measurementId: "G-1M68B30YX8"
 };
 
-// 파이어베이스 시작
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔒 선생님 로그인 비밀번호 변경 완료!
 const ADMIN_PASSWORD = "dosunseat20500"; 
 
-// 기본 변수
 let cols = 5, totalSeats = 25;
 let seats = {};
 let activeSeat = null;
-let isAdmin = false; // 기본값은 학생 모드(수정 불가)
+let isAdmin = false; 
 
-// 🔥 1. 파이어베이스에서 실시간으로 데이터 가져오기 (접속 시, 내용 바뀔 때 즉시 실행)
 db.ref('classroom/').on('value', (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -154,14 +179,12 @@ db.ref('classroom/').on('value', (snapshot) => {
     totalSeats = data.ts || 25;
     seats = data.s || {};
     
-    // 입력창 업데이트
     document.getElementById('cols').value = cols;
     document.getElementById('totalSeats').value = totalSeats;
   }
-  buildGrid(); // 화면 새로 그리기
+  buildGrid(); 
 });
 
-// 🔥 2. 파이어베이스에 데이터 저장하기 (변경될 때마다 서버로 쏨)
 function syncToServer() {
   if (!isAdmin) return;
   db.ref('classroom/').set({
@@ -171,7 +194,6 @@ function syncToServer() {
   });
 }
 
-// 선생님 로그인 / 로그아웃 기능
 function toggleAdmin() {
   if (isAdmin) {
     isAdmin = false;
@@ -202,7 +224,6 @@ function buildGrid() {
     div.className = isAdmin ? 'seat admin-mode' : 'seat';
     div.dataset.id = id;
     
-    // 선생님 로그인 상태일 때만 클릭(수정) 가능
     if (isAdmin) {
       div.onclick = () => openModal(id);
     } else {
@@ -259,7 +280,7 @@ function saveSeat(gender) {
   if (!name) return;
   const isFixed = seats[activeSeat] ? seats[activeSeat].isFixed : false;
   seats[activeSeat] = { name, gender, isFixed };
-  syncToServer(); // 서버에 즉시 반영
+  syncToServer(); 
   closeModal();
 }
 
@@ -290,18 +311,15 @@ function clearAll() {
 }
 
 function randomizeNumbers() {
-  // 1. 고정 안 된 자리 비우기
   for (let i = 0; i < totalSeats; i++) {
     if (seats[`seat-${i}`] && !seats[`seat-${i}`].isFixed) delete seats[`seat-${i}`];
   }
 
-  // 2. 빈 자리 모으기
   const emptySeatIds = [];
   for (let i = 0; i < totalSeats; i++) {
     if (!seats[`seat-${i}`]) emptySeatIds.push(`seat-${i}`);
   }
 
-  // 3. 고정된 이름 빼고 번호 뽑기
   const fixedNames = Object.values(seats).filter(s => s.isFixed).map(s => s.name);
   const availableNumbers = [];
   for(let i = 1; i <= totalSeats; i++) {
@@ -318,7 +336,7 @@ function randomizeNumbers() {
       seats[emptySeatIds[i]] = { name: `${num}번`, gender: genderClass, isFixed: false };
     }
   }
-  syncToServer(); // 다 섞은 뒤 서버에 전송
+  syncToServer(); 
 }
 
 function shuffleExisting() {
@@ -355,8 +373,71 @@ function updateStats() {
   document.getElementById('stats').textContent = `총 좌석: ${totalSeats}석 · 배치 인원: ${placed}명 · 빈 자리: ${empty}석`;
 }
 
-// 엔터 키나 모달 바깥 클릭 시 닫기
+// 🌟 새롭게 추가된 모둠 편성 함수
+function openGroupModal() {
+  // 모둠당 인원수 묻기
+  const groupSizeInput = prompt("한 모둠당 몇 명으로 구성할까요?\n(자리 1번부터 순서대로 빈자리를 빼고 묶습니다)", "4");
+  if (!groupSizeInput) return;
+  
+  const groupSize = parseInt(groupSizeInput);
+  if (isNaN(groupSize) || groupSize < 2) {
+    alert("2 이상의 올바른 숫자를 입력해주세요.");
+    return;
+  }
+
+  const groupGrid = document.getElementById('groupGrid');
+  groupGrid.innerHTML = '';
+
+  let currentGroup = [];
+  let groupNumber = 1;
+
+  // 빈자리 제외하고 현재 앉아있는 학생들 순서대로 수집
+  for (let i = 0; i < totalSeats; i++) {
+    const id = `seat-${i}`;
+    if (seats[id]) {
+      currentGroup.push({ num: i + 1, ...seats[id] });
+    }
+
+    // 설정한 인원수가 채워졌거나, 마지막 학생까지 왔는데 남은 인원이 있을 경우 모둠 카드 생성
+    if (currentGroup.length === groupSize || (i === totalSeats - 1 && currentGroup.length > 0)) {
+      if (currentGroup.length > 0) {
+        const card = document.createElement('div');
+        card.className = 'group-card';
+        
+        let membersHTML = currentGroup.map(m => `
+          <div class="group-member">
+            <span class="group-member-name" style="color: ${m.gender === 'boy' ? '#0366d6' : '#cb2431'};">${m.name}</span>
+            <span class="group-member-num">${m.num}번 자리</span>
+          </div>
+        `).join('');
+        
+        card.innerHTML = `
+          <div class="group-card-title">${groupNumber}모둠</div>
+          ${membersHTML}
+        `;
+        groupGrid.appendChild(card);
+        
+        groupNumber++;
+        currentGroup = []; // 다음 모둠을 위해 초기화
+      }
+    }
+  }
+
+  if (groupNumber === 1) {
+    alert("현재 배치된 학생이 없습니다.");
+    return;
+  }
+
+  document.getElementById('groupModalBg').classList.add('open');
+}
+
+function closeGroupModal() {
+  document.getElementById('groupModalBg').classList.remove('open');
+}
+
+// 이벤트 리스너들
 document.getElementById('modalBg').addEventListener('click', e => { if (e.target === document.getElementById('modalBg')) closeModal(); });
+document.getElementById('groupModalBg').addEventListener('click', e => { if (e.target === document.getElementById('groupModalBg')) closeGroupModal(); });
 document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveSeat(seats[activeSeat]?.gender || 'boy'); });
 
 </script>
