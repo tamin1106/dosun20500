@@ -107,7 +107,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
     <button class="btn btn-primary" onclick="randomizeNumbers()">번호 자동 배치</button>
     <button class="btn" onclick="shuffleExisting()">현재 자리 섞기</button>
     
-    <button class="btn btn-group" onclick="openGroupModal()">👥 모둠 편성표</button>
+    <button class="btn btn-group" onclick="openGroupModal()">👥 랜덤 모둠 편성</button>
 
     <div class="flex-spacer"></div>
     <button class="btn btn-danger" onclick="clearAll()">전체 비우기</button>
@@ -144,7 +144,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 <div class="group-modal-bg" id="groupModalBg">
   <div class="group-modal">
     <div class="group-modal-header">
-      <h2>👥 우리반 모둠 편성표</h2>
+      <h2>👥 우리반 랜덤 모둠 편성표</h2>
       <button class="group-close-btn" onclick="closeGroupModal()">&times;</button>
     </div>
     <div class="group-grid" id="groupGrid">
@@ -229,7 +229,7 @@ function buildGrid() {
     if (isAdmin) {
       div.onclick = () => openModal(id);
     } else {
-      div.onclick = () => alert("보기 전용 모드입니다. 자리를 수정할 수 없습니다.");
+      div.onclick = () => { /* 학생 클릭 방지 */ };
     }
     
     renderSeat(div, id, i + 1);
@@ -375,14 +375,14 @@ function updateStats() {
   document.getElementById('stats').textContent = `총 좌석: ${totalSeats}석 · 배치 인원: ${placed}명 · 빈 자리: ${empty}석`;
 }
 
-// 모둠 편성 함수 (관리자 모드에서만 접근 가능)
+// 🌟 무작위(랜덤) 모둠 편성 함수
 function openGroupModal() {
   if (!isAdmin) {
     alert("관리자(선생님) 모드에서만 사용할 수 있습니다.");
     return;
   }
 
-  const groupSizeInput = prompt("한 모둠당 몇 명으로 구성할까요?\n(자리 1번부터 순서대로 빈자리를 빼고 묶습니다)", "4");
+  const groupSizeInput = prompt("한 모둠당 몇 명으로 구성할까요?\n(현재 앉아있는 학생들을 무작위로 섞어서 묶습니다)", "4");
   if (!groupSizeInput) return;
   
   const groupSize = parseInt(groupSizeInput);
@@ -394,42 +394,51 @@ function openGroupModal() {
   const groupGrid = document.getElementById('groupGrid');
   groupGrid.innerHTML = '';
 
-  let currentGroup = [];
-  let groupNumber = 1;
-
+  // 1. 현재 자리에 앉아있는 학생들 데이터 모으기
+  let seatedStudents = [];
   for (let i = 0; i < totalSeats; i++) {
     const id = `seat-${i}`;
     if (seats[id]) {
-      currentGroup.push({ num: i + 1, ...seats[id] });
-    }
-
-    if (currentGroup.length === groupSize || (i === totalSeats - 1 && currentGroup.length > 0)) {
-      if (currentGroup.length > 0) {
-        const card = document.createElement('div');
-        card.className = 'group-card';
-        
-        let membersHTML = currentGroup.map(m => `
-          <div class="group-member">
-            <span class="group-member-name" style="color: ${m.gender === 'boy' ? '#0366d6' : '#cb2431'};">${m.name}</span>
-            <span class="group-member-num">${m.num}번 자리</span>
-          </div>
-        `).join('');
-        
-        card.innerHTML = `
-          <div class="group-card-title">${groupNumber}모둠</div>
-          ${membersHTML}
-        `;
-        groupGrid.appendChild(card);
-        
-        groupNumber++;
-        currentGroup = [];
-      }
+      seatedStudents.push({ num: i + 1, ...seats[id] });
     }
   }
 
-  if (groupNumber === 1) {
+  if (seatedStudents.length === 0) {
     alert("현재 배치된 학생이 없습니다.");
     return;
+  }
+
+  // 2. 학생 순서 무작위(랜덤)로 섞기
+  seatedStudents.sort(() => Math.random() - 0.5);
+
+  // 3. 섞인 순서대로 모둠 생성하기
+  let currentGroup = [];
+  let groupNumber = 1;
+
+  for (let i = 0; i < seatedStudents.length; i++) {
+    currentGroup.push(seatedStudents[i]);
+
+    // 설정한 인원수가 채워졌거나, 마지막 학생일 경우 카드 렌더링
+    if (currentGroup.length === groupSize || i === seatedStudents.length - 1) {
+      const card = document.createElement('div');
+      card.className = 'group-card';
+      
+      let membersHTML = currentGroup.map(m => `
+        <div class="group-member">
+          <span class="group-member-name" style="color: ${m.gender === 'boy' ? '#0366d6' : '#cb2431'};">${m.name}</span>
+          <span class="group-member-num">${m.num}번 자리</span>
+        </div>
+      `).join('');
+      
+      card.innerHTML = `
+        <div class="group-card-title">${groupNumber}모둠</div>
+        ${membersHTML}
+      `;
+      groupGrid.appendChild(card);
+      
+      groupNumber++;
+      currentGroup = []; // 다음 모둠을 위해 배열 비우기
+    }
   }
 
   document.getElementById('groupModalBg').classList.add('open');
