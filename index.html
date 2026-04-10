@@ -71,22 +71,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .btn-girl { background: #fff5f5; border-color: #ffe3e6; color: #cb2431; }
 .btn-fix { grid-column: 1 / 3; background: #fffbdd; border-color: #e5cd52; color: #735c0f; }
 
-/* 모달 (모둠 보기 전용) */
+/* 🌟 넓어진 모달 (모둠 보기 전용) */
 .group-modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(27,31,35,0.6); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
 .group-modal-bg.open { display: flex; }
-.group-modal { background: #f6f8fa; border-radius: 12px; padding: 24px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-.group-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e1e4e8; padding-bottom: 12px; }
-.group-modal-header h2 { font-size: 18px; color: #24292e; margin: 0; }
-.group-header-controls { display: flex; align-items: center; gap: 10px; }
-.group-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #586069; line-height: 1; padding: 0 5px; }
+.group-modal { background: #f6f8fa; border-radius: 12px; padding: 30px; width: 95%; max-width: 1200px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.group-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #e1e4e8; padding-bottom: 16px; }
+.group-modal-header h2 { font-size: 22px; color: #24292e; margin: 0; }
+.group-header-controls { display: flex; align-items: center; gap: 12px; }
+.group-close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: #586069; line-height: 1; padding: 0 5px; }
 .group-close-btn:hover { color: #cb2431; }
-.group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
-.group-card { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(27,31,35,0.05); }
-.group-card-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 6px; text-align: center; }
-.group-member { font-size: 14px; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #f3f4f6; }
+.group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.group-card { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(27,31,35,0.05); }
+.group-card-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 8px; text-align: center; }
+.group-member { font-size: 15px; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #f3f4f6; }
 .group-member:last-child { border-bottom: none; }
 .group-member-name { font-weight: 600; }
-.group-member-num { color: #959da5; font-size: 12px; background: #f3f4f6; padding: 2px 6px; border-radius: 10px; }
+.group-member-num { color: #959da5; font-size: 13px; background: #f3f4f6; padding: 2px 6px; border-radius: 10px; }
 
 /* 관리자 로그인 버튼 */
 .admin-login-btn { position: fixed; bottom: 20px; right: 20px; background: #24292e; color: white; border: none; padding: 10px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); opacity: 0.5; transition: 0.3s; z-index: 50; }
@@ -380,7 +380,7 @@ function updateStats() {
   document.getElementById('stats').textContent = `총 좌석: ${totalSeats}석 · 배치 인원: ${placed}명 · 빈 자리: ${empty}석`;
 }
 
-// 🌟 팝업창을 열기 위한 함수
+// 팝업창을 열기 위한 함수
 function openGroupModal() {
   if (!isAdmin) {
     alert("관리자(선생님) 모드에서만 사용할 수 있습니다.");
@@ -401,7 +401,7 @@ function openGroupModal() {
   document.getElementById('groupModalBg').classList.add('open');
 }
 
-// 🌟 모둠을 확실하게 섞고 화면에 그려주는 함수 (원래 자리 정보는 절대 안 건드림!)
+// 모둠을 확실하게 섞고 화면에 그려주는 함수 (원래 자리 정보는 절대 안 건드림!)
 function generateRandomGroups() {
   const groupGrid = document.getElementById('groupGrid');
   groupGrid.innerHTML = '';
@@ -416,7 +416,7 @@ function generateRandomGroups() {
   }
 
   if (seatedStudents.length === 0) {
-    groupGrid.innerHTML = '<p style="text-align:center; width:100%;">현재 배치된 학생이 없습니다.</p>';
+    groupGrid.innerHTML = '<p style="text-align:center; width:100%; font-size:16px;">현재 배치된 학생이 없습니다.</p>';
     return;
   }
 
