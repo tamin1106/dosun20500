@@ -77,7 +77,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .group-modal { background: #f6f8fa; border-radius: 12px; padding: 24px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
 .group-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e1e4e8; padding-bottom: 12px; }
 .group-modal-header h2 { font-size: 18px; color: #24292e; margin: 0; }
-.group-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #586069; line-height: 1; }
+.group-header-controls { display: flex; align-items: center; gap: 10px; }
+.group-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #586069; line-height: 1; padding: 0 5px; }
 .group-close-btn:hover { color: #cb2431; }
 .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
 .group-card { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(27,31,35,0.05); }
@@ -145,7 +146,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
   <div class="group-modal">
     <div class="group-modal-header">
       <h2>👥 우리반 랜덤 모둠 편성표</h2>
-      <button class="group-close-btn" onclick="closeGroupModal()">&times;</button>
+      <div class="group-header-controls">
+        <button class="btn btn-primary" onclick="generateRandomGroups()">🎲 다시 섞기</button>
+        <button class="group-close-btn" onclick="closeGroupModal()">&times;</button>
+      </div>
     </div>
     <div class="group-grid" id="groupGrid">
       </div>
@@ -173,6 +177,7 @@ let cols = 5, totalSeats = 25;
 let seats = {};
 let activeSeat = null;
 let isAdmin = false; 
+let currentGroupSize = 4; // 모둠당 기본 인원수 저장용
 
 db.ref('classroom/').on('value', (snapshot) => {
   const data = snapshot.val();
@@ -375,22 +380,29 @@ function updateStats() {
   document.getElementById('stats').textContent = `총 좌석: ${totalSeats}석 · 배치 인원: ${placed}명 · 빈 자리: ${empty}석`;
 }
 
-// 🌟 무작위(랜덤) 모둠 편성 함수
+// 🌟 팝업창을 열기 위한 함수
 function openGroupModal() {
   if (!isAdmin) {
     alert("관리자(선생님) 모드에서만 사용할 수 있습니다.");
     return;
   }
 
-  const groupSizeInput = prompt("한 모둠당 몇 명으로 구성할까요?\n(현재 앉아있는 학생들을 무작위로 섞어서 묶습니다)", "4");
+  const groupSizeInput = prompt("한 모둠당 몇 명으로 구성할까요?\n(본래 자리는 유지되며, 팝업창 안에서만 묶입니다.)", currentGroupSize);
   if (!groupSizeInput) return;
   
-  const groupSize = parseInt(groupSizeInput);
-  if (isNaN(groupSize) || groupSize < 2) {
+  const size = parseInt(groupSizeInput);
+  if (isNaN(size) || size < 2) {
     alert("2 이상의 올바른 숫자를 입력해주세요.");
     return;
   }
+  
+  currentGroupSize = size; // 설정한 인원수 저장
+  generateRandomGroups();  // 랜덤 모둠 생성 실행
+  document.getElementById('groupModalBg').classList.add('open');
+}
 
+// 🌟 모둠을 확실하게 섞고 화면에 그려주는 함수 (원래 자리 정보는 절대 안 건드림!)
+function generateRandomGroups() {
   const groupGrid = document.getElementById('groupGrid');
   groupGrid.innerHTML = '';
 
@@ -404,14 +416,17 @@ function openGroupModal() {
   }
 
   if (seatedStudents.length === 0) {
-    alert("현재 배치된 학생이 없습니다.");
+    groupGrid.innerHTML = '<p style="text-align:center; width:100%;">현재 배치된 학생이 없습니다.</p>';
     return;
   }
 
-  // 2. 학생 순서 무작위(랜덤)로 섞기
-  seatedStudents.sort(() => Math.random() - 0.5);
+  // 2. 완벽한 무작위 섞기 (Fisher-Yates Shuffle 알고리즘 적용)
+  for (let i = seatedStudents.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [seatedStudents[i], seatedStudents[j]] = [seatedStudents[j], seatedStudents[i]];
+  }
 
-  // 3. 섞인 순서대로 모둠 생성하기
+  // 3. 섞인 순서대로 모둠 생성하여 카드 만들기
   let currentGroup = [];
   let groupNumber = 1;
 
@@ -419,7 +434,7 @@ function openGroupModal() {
     currentGroup.push(seatedStudents[i]);
 
     // 설정한 인원수가 채워졌거나, 마지막 학생일 경우 카드 렌더링
-    if (currentGroup.length === groupSize || i === seatedStudents.length - 1) {
+    if (currentGroup.length === currentGroupSize || i === seatedStudents.length - 1) {
       const card = document.createElement('div');
       card.className = 'group-card';
       
@@ -440,8 +455,6 @@ function openGroupModal() {
       currentGroup = []; // 다음 모둠을 위해 배열 비우기
     }
   }
-
-  document.getElementById('groupModalBg').classList.add('open');
 }
 
 function closeGroupModal() {
